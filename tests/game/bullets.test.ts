@@ -7,6 +7,8 @@ import {
 } from '../../src/game/bullets';
 import {
   createGameState,
+  pauseGame,
+  resumeGame,
   startGame,
   updateGameState,
 } from '../../src/game/state';
@@ -221,6 +223,26 @@ describe('game state collisions', () => {
 });
 
 describe('game state updates', () => {
+  it('pauses and resumes without advancing the simulation', () => {
+    const playing = startGame(createGameState(1));
+    const paused = pauseGame(playing);
+
+    expect(paused.status).toBe('paused');
+    expect(
+      updateGameState(
+        paused,
+        { left: false, right: true, up: false, down: false },
+        1000,
+      ),
+    ).toBe(paused);
+
+    const resumed = resumeGame(paused);
+
+    expect(resumed.status).toBe('playing');
+    expect(resumed.elapsedMs).toBe(paused.elapsedMs);
+    expect(resumed.player.position).toEqual(paused.player.position);
+  });
+
   it('clamps large update deltas before advancing time and movement', () => {
     const state = { ...createGameState(1), status: 'playing' as const };
     const updated = updateGameState(

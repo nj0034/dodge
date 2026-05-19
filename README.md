@@ -2,6 +2,11 @@
 
 Arrow-key space dodge game built with Vite, TypeScript, Canvas, Cloudflare Pages Functions, and Cloudflare D1.
 
+Controls:
+
+- Arrow keys move the ship.
+- Space starts, pauses, resumes, and restarts the game.
+
 ## Local Development
 
 ```bash

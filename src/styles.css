@@ -212,6 +212,37 @@ dd {
   font-weight: 900;
 }
 
+.pause-panel {
+  width: min(320px, 100%);
+  text-align: center;
+}
+
+.pause-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.secondary {
+  min-height: 42px;
+  color: #e2e8f0;
+  background: rgba(30, 41, 59, 0.92);
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  font-weight: 900;
+  transition:
+    background 140ms ease,
+    transform 140ms ease;
+}
+
+.secondary:hover {
+  background: rgba(51, 65, 85, 0.94);
+}
+
+.secondary:active {
+  transform: translateY(1px);
+}
+
 .leaderboard {
   display: grid;
   gap: 6px;

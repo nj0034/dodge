@@ -3,6 +3,8 @@ import { createKeyboardInput } from '../game/input';
 import { createRenderer } from '../game/renderer';
 import {
   createGameState,
+  pauseGame,
+  resumeGame,
   startGame,
   updateGameState,
   type GameState,
@@ -84,7 +86,7 @@ function showMenu(overlay: HTMLElement, onStart: () => void) {
       <div class="panel menu-panel">
         <p class="eyebrow">ARROW KEY SURVIVAL</p>
         <h1>닷지</h1>
-        <p class="instructions">방향키로 작은 우주선을 움직여 탄막을 피하세요. 방패는 한 번의 충돌을 막아줍니다.</p>
+        <p class="instructions">방향키로 작은 우주선을 움직여 탄막을 피하세요. 방패는 한 번의 충돌을 막고, Space로 시작, 일시정지, 재시작할 수 있습니다.</p>
         <dl class="score-row">
           <div>
             <dt>Local best</dt>
@@ -101,6 +103,30 @@ function showMenu(overlay: HTMLElement, onStart: () => void) {
   );
 
   overlay.querySelector<HTMLButtonElement>('[data-action="start"]')?.addEventListener('click', onStart);
+}
+
+function showPaused(
+  overlay: HTMLElement,
+  onResume: () => void,
+  onRestart: () => void,
+) {
+  setOverlay(
+    overlay,
+    `
+      <div class="panel pause-panel">
+        <p class="eyebrow">SYSTEM HOLD</p>
+        <h1>PAUSED</h1>
+        <p class="instructions">Space로 이어서 플레이하세요.</p>
+        <div class="pause-actions">
+          <button type="button" class="primary" data-action="resume" data-testid="resume-game">Resume</button>
+          <button type="button" class="secondary" data-action="restart">Restart</button>
+        </div>
+      </div>
+    `,
+  );
+
+  overlay.querySelector<HTMLButtonElement>('[data-action="resume"]')?.addEventListener('click', onResume);
+  overlay.querySelector<HTMLButtonElement>('[data-action="restart"]')?.addEventListener('click', onRestart);
 }
 
 function showGameOver(
@@ -160,6 +186,11 @@ export function mountApp({ root, canvas, overlay }: AppElements) {
   let scoreSubmitInFlight = false;
   let scoreSubmitSucceeded = false;
 
+  const isEditableTarget = (target: EventTarget | null) =>
+    target instanceof HTMLInputElement ||
+    target instanceof HTMLTextAreaElement ||
+    (target instanceof HTMLElement && target.isContentEditable);
+
   const loadLeaderboard = async () => {
     const leaderboard = overlay.querySelector<HTMLElement>('#leaderboard');
     const requestSeq = ++leaderboardRequestSeq;
@@ -194,6 +225,51 @@ export function mountApp({ root, canvas, overlay }: AppElements) {
     scoreSubmitSucceeded = false;
     submitStartedViewSeq = 0;
     clearOverlay(overlay);
+  };
+
+  const pause = () => {
+    const paused = pauseGame(state);
+
+    if (paused === state) {
+      return;
+    }
+
+    input.reset();
+    state = paused;
+    showPaused(overlay, resume, restart);
+  };
+
+  const resume = () => {
+    const resumed = resumeGame(state);
+
+    if (resumed === state) {
+      return;
+    }
+
+    input.reset();
+    state = resumed;
+    lastFrameTime = performance.now();
+    clearOverlay(overlay);
+  };
+
+  const handleGlobalKeyDown = (event: KeyboardEvent) => {
+    if (event.code !== 'Space' || event.repeat || isEditableTarget(event.target)) {
+      return;
+    }
+
+    event.preventDefault();
+
+    if (state.status === 'playing') {
+      pause();
+      return;
+    }
+
+    if (state.status === 'paused') {
+      resume();
+      return;
+    }
+
+    restart();
   };
 
   const loop = (time: number) => {
@@ -284,6 +360,7 @@ export function mountApp({ root, canvas, overlay }: AppElements) {
   void loadLeaderboard();
   renderer.render(state);
   window.addEventListener('resize', handleResize);
+  window.addEventListener('keydown', handleGlobalKeyDown, { passive: false });
   overlay.addEventListener('submit', handleScoreSubmit);
   animationFrameId = requestAnimationFrame(loop);
 
@@ -292,6 +369,7 @@ export function mountApp({ root, canvas, overlay }: AppElements) {
     cancelAnimationFrame(animationFrameId);
     input.dispose();
     window.removeEventListener('resize', handleResize);
+    window.removeEventListener('keydown', handleGlobalKeyDown);
     overlay.removeEventListener('submit', handleScoreSubmit);
   };
 }

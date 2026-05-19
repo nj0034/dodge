@@ -61,6 +61,21 @@ test('starts the game and moves with arrow keys', async ({ page }) => {
   await expect(page.getByText('GAME OVER')).toHaveCount(0);
 });
 
+test('space starts, pauses, and resumes the game', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.getByRole('heading', { name: '닷지' })).toBeVisible();
+
+  await page.keyboard.press('Space');
+  await expect(page.getByRole('heading', { name: '닷지' })).toHaveCount(0);
+
+  await page.keyboard.press('Space');
+  await expect(page.getByRole('heading', { name: 'PAUSED' })).toBeVisible();
+
+  await page.keyboard.press('Space');
+  await expect(page.getByRole('heading', { name: 'PAUSED' })).toHaveCount(0);
+  await expect(page.getByText('GAME OVER')).toHaveCount(0);
+});
+
 test('shows the start button with an empty leaderboard response', async ({ page }) => {
   await page.route('**/api/scores', async (route) => {
     await route.fulfill({

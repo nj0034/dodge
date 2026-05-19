@@ -137,26 +137,48 @@ function drawPlayer(ctx: CanvasRenderingContext2D, state: GameState) {
   }
 
   ctx.globalAlpha = player.alive ? 1 : 0.35;
-  ctx.shadowBlur = 16;
-  ctx.shadowColor = '#93c5fd';
-  ctx.fillStyle = '#e0f2fe';
-  ctx.beginPath();
-  ctx.moveTo(0, -player.radius - 4);
-  ctx.lineTo(player.radius + 6, player.radius + 5);
-  ctx.lineTo(0, player.radius);
-  ctx.lineTo(-player.radius - 6, player.radius + 5);
-  ctx.closePath();
-  ctx.fill();
+  ctx.imageSmoothingEnabled = false;
+
+  ctx.shadowBlur = 10;
+  ctx.shadowColor = '#60a5fa';
+  ctx.fillStyle = '#020617';
+  ctx.fillRect(-4, -18, 8, 4);
+  ctx.fillRect(-8, -14, 16, 4);
+  ctx.fillRect(-10, -10, 20, 8);
+  ctx.fillRect(-16, -2, 32, 10);
+  ctx.fillRect(-20, 8, 40, 8);
 
   ctx.shadowBlur = 0;
-  ctx.fillStyle = '#38bdf8';
-  ctx.beginPath();
-  ctx.moveTo(0, -player.radius + 2);
-  ctx.lineTo(player.radius - 2, player.radius + 1);
-  ctx.lineTo(0, player.radius - 2);
-  ctx.lineTo(-player.radius + 2, player.radius + 1);
-  ctx.closePath();
-  ctx.fill();
+  ctx.fillStyle = '#f8fafc';
+  ctx.fillRect(-2, -18, 4, 4);
+  ctx.fillRect(-5, -14, 10, 4);
+  ctx.fillRect(-6, -10, 12, 8);
+  ctx.fillRect(-7, -2, 14, 16);
+
+  ctx.fillStyle = '#bae6fd';
+  ctx.fillRect(-3, -10, 6, 6);
+  ctx.fillStyle = '#2563eb';
+  ctx.fillRect(-2, -8, 4, 4);
+
+  ctx.fillStyle = '#ef4444';
+  ctx.fillRect(-12, -2, 5, 12);
+  ctx.fillRect(7, -2, 5, 12);
+  ctx.fillRect(-17, 6, 5, 9);
+  ctx.fillRect(12, 6, 5, 9);
+
+  ctx.fillStyle = '#fef2f2';
+  ctx.fillRect(-9, 2, 2, 5);
+  ctx.fillRect(7, 2, 2, 5);
+
+  ctx.fillStyle = '#0ea5e9';
+  ctx.fillRect(-6, 12, 4, 5);
+  ctx.fillRect(2, 12, 4, 5);
+  ctx.fillStyle = '#f97316';
+  ctx.fillRect(-4, 17, 2, 4);
+  ctx.fillRect(2, 17, 2, 4);
+
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(-1, -17, 2, 3);
   ctx.restore();
 }
 

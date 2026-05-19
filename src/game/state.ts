@@ -10,7 +10,7 @@ import { createPlayer, movePlayer, registerPlayerHit } from './player';
 import { createRng, type Rng } from './rng';
 import type { Bounds, Bullet, Difficulty, InputState, Player } from './types';
 
-export type GameStatus = 'ready' | 'playing' | 'gameOver';
+export type GameStatus = 'ready' | 'playing' | 'paused' | 'gameOver';
 
 export type GameState = {
   status: GameStatus;
@@ -53,6 +53,22 @@ export function startGame(state: GameState): GameState {
     ...createGameState(seed),
     status: 'playing',
   };
+}
+
+export function pauseGame(state: GameState): GameState {
+  if (state.status !== 'playing') {
+    return state;
+  }
+
+  return { ...state, status: 'paused' };
+}
+
+export function resumeGame(state: GameState): GameState {
+  if (state.status !== 'paused') {
+    return state;
+  }
+
+  return { ...state, status: 'playing' };
 }
 
 function spawnDueBullets(state: GameState, deltaMs: number): GameState {
