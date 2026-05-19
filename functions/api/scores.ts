@@ -70,12 +70,12 @@ export async function onRequestPost(context: PagesFunctionContext): Promise<Resp
   try {
     payload = await context.request.json();
   } catch {
-    return jsonResponse({ message: 'Invalid JSON payload.' }, { status: 400 });
+    return jsonResponse({ error: 'Invalid JSON payload' }, { status: 400 });
   }
 
   const validation = validateScoreSubmission(payload as { nickname: unknown; survivalMs: unknown });
   if (!validation.ok) {
-    return jsonResponse({ message: validation.message }, { status: 400 });
+    return jsonResponse({ error: validation.message }, { status: 400 });
   }
 
   await context.env.DB.prepare('INSERT INTO scores (nickname, survival_ms) VALUES (?, ?)')

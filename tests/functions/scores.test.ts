@@ -53,6 +53,11 @@ type ScoresResponse = {
   scores: Score[];
 };
 
+type ErrorResponse = {
+  error?: string;
+  message?: string;
+};
+
 async function readJson<T>(response: Response): Promise<T> {
   return (await response.json()) as T;
 }
@@ -114,7 +119,26 @@ describe('/api/scores Pages Function', () => {
     });
 
     const response = await onRequestPost(createContext(request, db));
+    const body = await readJson<ErrorResponse>(response);
 
     expect(response.status).toBe(400);
+    expect(body.error).toBe('닉네임을 입력해주세요.');
+    expect(body.message).toBeUndefined();
+  });
+
+  it('returns 400 with an error for invalid JSON', async () => {
+    const db = new FakeD1Database();
+    const request = new Request('https://dodge.test/api/scores', {
+      method: 'POST',
+      body: '{not valid json',
+      headers: { 'content-type': 'application/json' },
+    });
+
+    const response = await onRequestPost(createContext(request, db));
+    const body = await readJson<ErrorResponse>(response);
+
+    expect(response.status).toBe(400);
+    expect(body.error).toBe('Invalid JSON payload');
+    expect(body.message).toBeUndefined();
   });
 });
