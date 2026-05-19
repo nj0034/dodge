@@ -5,6 +5,9 @@ import type { Bounds, Bullet, BulletKind, Vec2 } from './types';
 const SPAWN_PADDING = 36;
 const CLEANUP_PADDING = 180;
 const SPLIT_ANGLE_RADIANS = Math.PI / 7;
+const SPIRAL_WAVE_PERIOD_MS = 760;
+const SPIRAL_FORWARD_RATIO = 0.96;
+const SPIRAL_LATERAL_RATIO = 0.62;
 
 type SpawnBulletInput = {
   id: number;
@@ -31,6 +34,11 @@ const normalize = (value: Vec2): Vec2 => {
 const scale = (value: Vec2, amount: number): Vec2 => ({
   x: value.x * amount,
   y: value.y * amount,
+});
+
+const add = (a: Vec2, b: Vec2): Vec2 => ({
+  x: a.x + b.x,
+  y: a.y + b.y,
 });
 
 const rotate = (value: Vec2, radians: number): Vec2 => {
@@ -118,28 +126,39 @@ function isWithinCleanupBounds(bullet: Bullet, bounds: Bounds): boolean {
 
 function moveBullet(bullet: Bullet, deltaMs: number): Bullet {
   const nextAgeMs = bullet.ageMs + deltaMs;
-
-  const turn =
-    bullet.kind === 'spiral'
-      ? Math.sin(nextAgeMs / 180) * 0.11
-      : 0;
-  const velocity = turn === 0 ? bullet.velocity : rotate(bullet.velocity, turn);
   const movementMs =
     bullet.kind === 'dash'
       ? Math.max(0, nextAgeMs - bullet.delayMs) -
         Math.max(0, bullet.ageMs - bullet.delayMs)
       : deltaMs;
   const seconds = movementMs / 1000;
+  const baseVelocity = bullet.velocity;
+  const velocity =
+    bullet.kind === 'spiral'
+      ? createSpiralMovementVelocity(baseVelocity, nextAgeMs)
+      : baseVelocity;
 
   return {
     ...bullet,
     ageMs: nextAgeMs,
-    velocity,
+    velocity: baseVelocity,
     position: {
       x: bullet.position.x + velocity.x * seconds,
       y: bullet.position.y + velocity.y * seconds,
     },
   };
+}
+
+function createSpiralMovementVelocity(baseVelocity: Vec2, ageMs: number): Vec2 {
+  const speed = magnitude(baseVelocity);
+  const forward = normalize(baseVelocity);
+  const lateral = { x: -forward.y, y: forward.x };
+  const wave = Math.sin((ageMs / SPIRAL_WAVE_PERIOD_MS) * Math.PI * 2);
+
+  return add(
+    scale(forward, speed * SPIRAL_FORWARD_RATIO),
+    scale(lateral, speed * SPIRAL_LATERAL_RATIO * wave),
+  );
 }
 
 function createSplitChildren(bullet: Bullet, nextId: number): Bullet[] {

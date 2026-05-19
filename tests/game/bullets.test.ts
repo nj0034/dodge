@@ -153,6 +153,35 @@ describe('bullets', () => {
     expect(updated.bullets[0]?.position.x).toBeCloseTo(101, 3);
   });
 
+  it('moves spiral bullets into the playfield while weaving', () => {
+    const bounds = { width: 2400, height: 1600 };
+    const bullet: Bullet = {
+      id: 1,
+      kind: 'spiral',
+      position: { x: -36, y: 800 },
+      velocity: { x: 405, y: 0 },
+      radius: 10,
+      color: '#38bdf8',
+      ageMs: 0,
+      delayMs: 0,
+    };
+    let bullets: Bullet[] = [bullet];
+    let nextId = 2;
+
+    for (let elapsedMs = 0; elapsedMs < 3008; elapsedMs += 16) {
+      const updated = updateBullets(bullets, 16, bounds, nextId);
+      bullets = updated.bullets;
+      nextId = updated.nextId;
+    }
+
+    const movedBullet = bullets[0];
+
+    expect(movedBullet).toBeDefined();
+    expect(movedBullet?.position.x).toBeGreaterThan(850);
+    expect(movedBullet?.position.y).toBeGreaterThan(0);
+    expect(movedBullet?.position.y).toBeLessThan(bounds.height);
+  });
+
   it('split bullets create two child bullets once', () => {
     const bullet = spawnBullet({
       id: 1,
