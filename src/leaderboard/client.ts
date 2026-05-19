@@ -26,7 +26,7 @@ export async function fetchScores(): Promise<Score[]> {
   const response = await fetch('/api/scores');
 
   if (!response.ok) {
-    throw new Error('Leaderboard request failed.');
+    throw new Error(await readErrorMessage(response));
   }
 
   const data = (await response.json()) as ScoresResponse;
