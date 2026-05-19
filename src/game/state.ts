@@ -29,6 +29,7 @@ const WORLD_BOUNDS: Bounds = {
   width: WORLD_WIDTH,
   height: WORLD_HEIGHT,
 };
+const MAX_UPDATE_DELTA_MS = 50;
 
 export function createGameState(seed = Date.now()): GameState {
   return {
@@ -46,8 +47,10 @@ export function createGameState(seed = Date.now()): GameState {
 }
 
 export function startGame(state: GameState): GameState {
+  const seed = Math.floor(state.rng.next() * Number.MAX_SAFE_INTEGER);
+
   return {
-    ...createGameState(state.seed),
+    ...createGameState(seed),
     status: 'playing',
   };
 }
@@ -115,12 +118,13 @@ export function updateGameState(
     return state;
   }
 
-  const elapsedMs = state.elapsedMs + deltaMs;
+  const clampedDeltaMs = Math.max(0, Math.min(deltaMs, MAX_UPDATE_DELTA_MS));
+  const elapsedMs = state.elapsedMs + clampedDeltaMs;
   const difficulty = getDifficulty(elapsedMs);
-  const player = movePlayer(state.player, input, deltaMs, state.bounds);
+  const player = movePlayer(state.player, input, clampedDeltaMs, state.bounds);
   const updated = updateBullets(
     state.bullets,
-    deltaMs,
+    clampedDeltaMs,
     state.bounds,
     state.nextBulletId,
   );
@@ -133,7 +137,7 @@ export function updateGameState(
       elapsedMs,
       difficulty,
     },
-    deltaMs,
+    clampedDeltaMs,
   );
   const nextPlayer = resolvePlayerCollisions(
     preparedState.player,

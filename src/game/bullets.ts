@@ -118,18 +118,18 @@ function isWithinCleanupBounds(bullet: Bullet, bounds: Bounds): boolean {
 
 function moveBullet(bullet: Bullet, deltaMs: number): Bullet {
   const nextAgeMs = bullet.ageMs + deltaMs;
-  const isDelayedDash = bullet.kind === 'dash' && bullet.ageMs < bullet.delayMs;
-
-  if (isDelayedDash) {
-    return { ...bullet, ageMs: nextAgeMs };
-  }
 
   const turn =
     bullet.kind === 'spiral'
       ? Math.sin(nextAgeMs / 180) * 0.11
       : 0;
   const velocity = turn === 0 ? bullet.velocity : rotate(bullet.velocity, turn);
-  const seconds = deltaMs / 1000;
+  const movementMs =
+    bullet.kind === 'dash'
+      ? Math.max(0, nextAgeMs - bullet.delayMs) -
+        Math.max(0, bullet.ageMs - bullet.delayMs)
+      : deltaMs;
+  const seconds = movementMs / 1000;
 
   return {
     ...bullet,
@@ -179,12 +179,13 @@ export function updateBullets(
       moved.ageMs >= moved.splitAtMs;
 
     const current = shouldSplit ? { ...moved, hasSplit: true } : moved;
+    const shouldRetain = isWithinCleanupBounds(current, bounds);
 
-    if (isWithinCleanupBounds(current, bounds)) {
+    if (shouldRetain) {
       nextBullets.push(current);
     }
 
-    if (shouldSplit) {
+    if (shouldSplit && shouldRetain) {
       nextBullets.push(...createSplitChildren(current, id));
       id += 2;
     }
