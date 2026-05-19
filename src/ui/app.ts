@@ -18,9 +18,9 @@ type AppElements = {
 const readBestScore = () => {
   try {
     const value = window.localStorage.getItem(BEST_SCORE_KEY);
-    const parsed = value === null ? 0 : Number.parseInt(value, 10);
+    const parsed = value === null ? 0 : Number(value);
 
-    return Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
+    return Number.isFinite(parsed) && Number.isInteger(parsed) ? Math.max(0, parsed) : 0;
   } catch {
     return 0;
   }
