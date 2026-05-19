@@ -54,6 +54,22 @@ describe('bullets', () => {
     expect(dotProduct).toBeGreaterThan(0);
   });
 
+  it('uses compact bullet radii at the expanded playfield scale', () => {
+    const input = {
+      id: 1,
+      rng: createRng(1),
+      bounds: { width: 2400, height: 1600 },
+      playerPosition: { x: 1200, y: 800 },
+      elapsedMs: 0,
+      speed: 180,
+    };
+
+    expect(spawnBullet({ ...input, kind: 'basic' }).radius).toBe(10);
+    expect(spawnBullet({ ...input, kind: 'split' }).radius).toBe(10);
+    expect(spawnBullet({ ...input, kind: 'dash' }).radius).toBe(8);
+    expect(spawnBullet({ ...input, kind: 'heavy' }).radius).toBe(16);
+  });
+
   it('moves active bullets', () => {
     const bullet = spawnBullet({
       id: 1,

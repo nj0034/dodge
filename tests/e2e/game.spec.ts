@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import type { Locator } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 
 type CanvasSample = {
   center: number;
@@ -36,7 +36,7 @@ const samplePlayerRegions = async (canvas: Locator) =>
 
     const centerX = canvasElement.width / 2;
     const centerY = canvasElement.height / 2;
-    const rightShiftX = centerX + canvasElement.width * (145 / 1600);
+    const rightShiftX = centerX + canvasElement.width * (250 / 2400);
 
     return {
       center: sampleChecksum(centerX, centerY),
@@ -44,64 +44,18 @@ const samplePlayerRegions = async (canvas: Locator) =>
     } satisfies CanvasSample;
   });
 
-const sampleImmediateDirectionResponse = async (canvas: Locator) =>
-  canvas.evaluate((element) => {
-    const canvasElement = element as HTMLCanvasElement;
-    const context = canvasElement.getContext('2d');
+const sampleImmediateDirectionResponse = async (
+  page: Page,
+  canvas: Locator,
+) => {
+  const before = await samplePlayerRegions(canvas);
 
-    if (!context) {
-      throw new Error('Canvas 2D context is not available');
-    }
+  await page.keyboard.down('ArrowRight');
+  const after = await samplePlayerRegions(canvas);
+  await page.keyboard.up('ArrowRight');
 
-    const sampleChecksum = (x: number, y: number) => {
-      const size = 36;
-      const left = Math.round(x - size / 2);
-      const top = Math.round(y - size / 2);
-      const data = context.getImageData(left, top, size, size).data;
-      let checksum = 0;
-
-      for (let index = 0; index < data.length; index += 4) {
-        checksum += data[index] + data[index + 1] * 3 + data[index + 2] * 5 + data[index + 3] * 7;
-      }
-
-      return checksum;
-    };
-
-    const sample = () => {
-      const centerX = canvasElement.width / 2;
-      const centerY = canvasElement.height / 2;
-      const rightShiftX = centerX + canvasElement.width * (145 / 1600);
-
-      return {
-        center: sampleChecksum(centerX, centerY),
-        right: sampleChecksum(rightShiftX, centerY),
-      };
-    };
-
-    const before = sample();
-
-    window.dispatchEvent(
-      new KeyboardEvent('keydown', {
-        key: 'ArrowRight',
-        code: 'ArrowRight',
-        bubbles: true,
-        cancelable: true,
-      }),
-    );
-
-    const after = sample();
-
-    window.dispatchEvent(
-      new KeyboardEvent('keyup', {
-        key: 'ArrowRight',
-        code: 'ArrowRight',
-        bubbles: true,
-        cancelable: true,
-      }),
-    );
-
-    return { before, after } satisfies ImmediateDirectionResponse;
-  });
+  return { before, after } satisfies ImmediateDirectionResponse;
+};
 
 test('starts the game and moves with arrow keys', async ({ page }) => {
   await page.goto('/');
@@ -134,7 +88,7 @@ test('moves on arrow keydown before the next animation frame', async ({ page }) 
   await page.getByTestId('start-game').click();
   await expect(canvas).toBeVisible();
 
-  const response = await sampleImmediateDirectionResponse(canvas);
+  const response = await sampleImmediateDirectionResponse(page, canvas);
 
   const centerDelta = Math.abs(response.after.center - response.before.center);
   const rightDelta = Math.abs(response.after.right - response.before.right);

@@ -19,6 +19,13 @@ describe('player', () => {
     expect(moved.position.y).toBeGreaterThanOrEqual(12);
   });
 
+  it('keeps controls responsive at the expanded playfield scale', () => {
+    const player = createPlayer(2400, 1600);
+
+    expect(player.radius).toBe(12);
+    expect(player.speed).toBe(960);
+  });
+
   it('consumes shield on first hit and dies on second hit', () => {
     const shielded = registerPlayerHit(createPlayer(100, 100));
 

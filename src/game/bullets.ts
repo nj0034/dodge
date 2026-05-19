@@ -2,8 +2,8 @@ import { BULLET_COLORS } from './config';
 import type { Rng } from './rng';
 import type { Bounds, Bullet, BulletKind, Vec2 } from './types';
 
-const SPAWN_PADDING = 28;
-const CLEANUP_PADDING = 120;
+const SPAWN_PADDING = 36;
+const CLEANUP_PADDING = 180;
 const SPLIT_ANGLE_RADIANS = Math.PI / 7;
 
 type SpawnBulletInput = {
@@ -55,9 +55,9 @@ function createEdgePosition(rng: Rng, bounds: Bounds): Vec2 {
 }
 
 function bulletRadius(kind: BulletKind): number {
-  if (kind === 'heavy') return 22;
-  if (kind === 'dash') return 12;
-  return 14;
+  if (kind === 'heavy') return 16;
+  if (kind === 'dash') return 8;
+  return 10;
 }
 
 function speedMultiplier(kind: BulletKind): number {
@@ -82,7 +82,7 @@ export function chooseBulletKind(
 
 export function spawnBullet(input: SpawnBulletInput): Bullet {
   const position = createEdgePosition(input.rng, input.bounds);
-  const aimOffset = input.kind === 'heavy' ? 0 : 62;
+  const aimOffset = input.kind === 'heavy' ? 0 : 90;
   const target = {
     x: input.playerPosition.x + (input.rng.next() - 0.5) * aimOffset,
     y: input.playerPosition.y + (input.rng.next() - 0.5) * aimOffset,
@@ -153,7 +153,7 @@ function createSplitChildren(bullet: Bullet, nextId: number): Bullet[] {
     kind: 'basic',
     position: bullet.position,
     velocity,
-    radius: 11,
+    radius: 8,
     color: BULLET_COLORS.basic,
     ageMs: 0,
     delayMs: 0,

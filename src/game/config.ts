@@ -1,12 +1,12 @@
-export const WORLD_WIDTH = 1600;
-export const WORLD_HEIGHT = 1067;
+export const WORLD_WIDTH = 2400;
+export const WORLD_HEIGHT = 1600;
 
-export const PLAYER_RADIUS = 16;
-export const PLAYER_SPEED = 500;
+export const PLAYER_RADIUS = 12;
+export const PLAYER_SPEED = 960;
 export const PLAYER_HIT_INVULNERABLE_MS = 900;
 
 export const MAX_BULLETS = 260;
-export const MAX_BULLET_SPEED = 540;
+export const MAX_BULLET_SPEED = 780;
 export const MIN_SPAWN_INTERVAL_MS = 150;
 
 export const BULLET_COLORS = {

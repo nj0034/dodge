@@ -21,7 +21,7 @@ export function getDifficulty(elapsedMs: number): Difficulty {
   return {
     elapsedMs: clampedElapsedMs,
     spawnIntervalMs: clamp(900 - seconds * 12, MIN_SPAWN_INTERVAL_MS, 900),
-    baseSpeed: clamp(120 + seconds * 3.2, 120, MAX_BULLET_SPEED),
+    baseSpeed: clamp(180 + seconds * 4.5, 180, MAX_BULLET_SPEED),
     maxBullets: Math.floor(clamp(32 + seconds * 2.4, 32, MAX_BULLETS)),
     unlockedKinds,
   };

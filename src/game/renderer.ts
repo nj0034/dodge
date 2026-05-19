@@ -13,10 +13,10 @@ type Star = Vec2 & {
   blur: number;
 };
 
-const STAR_COUNT = 230;
-const WARNING_LINE_LENGTH = 2000;
+const STAR_COUNT = 420;
+const WARNING_LINE_LENGTH = 3000;
 const HUD_SCALE = WORLD_WIDTH / 1280;
-const PLAYER_SHIP_SCALE = 1.18;
+const PLAYER_SHIP_SCALE = 1.02;
 
 const stars: Star[] = Array.from({ length: STAR_COUNT }, (_, index) => {
   const seed = Math.sin((index + 1) * 97.31) * 10000;
@@ -28,9 +28,9 @@ const stars: Star[] = Array.from({ length: STAR_COUNT }, (_, index) => {
   return {
     x: next(1) * WORLD_WIDTH,
     y: next(2) * WORLD_HEIGHT,
-    radius: 0.7 + next(3) * 1.6,
-    alpha: 0.09 + next(4) * 0.14,
-    blur: 6 + next(5) * 11,
+    radius: 0.8 + next(3) * 1.8,
+    alpha: 0.08 + next(4) * 0.13,
+    blur: 7 + next(5) * 12,
   };
 });
 
@@ -134,7 +134,7 @@ function drawPlayer(ctx: CanvasRenderingContext2D, state: GameState) {
     ctx.shadowBlur = 14;
     ctx.shadowColor = '#22d3ee';
     ctx.beginPath();
-    ctx.arc(0, 0, player.radius + 14, 0, Math.PI * 2);
+    ctx.arc(0, 0, player.radius + 11, 0, Math.PI * 2);
     ctx.stroke();
   }
 
