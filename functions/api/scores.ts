@@ -41,7 +41,18 @@ function isScorePayload(payload: unknown): payload is { nickname: unknown; survi
 async function readTopScores(env: ScoresEnv): Promise<Score[]> {
   const result = await env.DB.prepare(
     `SELECT nickname, survival_ms, created_at
-     FROM scores
+     FROM (
+       SELECT
+         nickname,
+         survival_ms,
+         created_at,
+         ROW_NUMBER() OVER (
+           PARTITION BY nickname
+           ORDER BY survival_ms DESC, created_at ASC
+         ) AS nickname_rank
+       FROM scores
+     ) ranked_scores
+     WHERE nickname_rank = 1
      ORDER BY survival_ms DESC, created_at ASC
      LIMIT 10`,
   ).all();
@@ -51,6 +62,23 @@ async function readTopScores(env: ScoresEnv): Promise<Score[]> {
     survivalMs: row.survival_ms,
     createdAt: row.created_at,
   }));
+}
+
+async function readNicknameBest(
+  env: ScoresEnv,
+  nickname: string,
+): Promise<ScoreRow | undefined> {
+  const result = await env.DB.prepare(
+    `SELECT nickname, survival_ms, created_at
+     FROM scores
+     WHERE nickname = ?
+     ORDER BY survival_ms DESC, created_at ASC
+     LIMIT 1`,
+  )
+    .bind(nickname)
+    .all();
+
+  return result.results?.[0];
 }
 
 function jsonResponse(body: unknown, init?: ResponseInit): Response {
@@ -91,6 +119,19 @@ export async function onRequestPost(context: PagesFunctionContext): Promise<Resp
   }
 
   try {
+    const currentBest = await readNicknameBest(context.env, validation.nickname);
+
+    if (currentBest !== undefined && currentBest.survival_ms >= validation.survivalMs) {
+      const scores = await readTopScores(context.env);
+      return jsonResponse({ scores });
+    }
+
+    if (currentBest !== undefined) {
+      await context.env.DB.prepare('DELETE FROM scores WHERE nickname = ?')
+        .bind(validation.nickname)
+        .run();
+    }
+
     await context.env.DB.prepare('INSERT INTO scores (nickname, survival_ms) VALUES (?, ?)')
       .bind(validation.nickname, validation.survivalMs)
       .run();

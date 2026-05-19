@@ -184,6 +184,10 @@ dd {
   margin: 0 0 14px;
 }
 
+.menu-nickname-form {
+  margin: 16px 0 0;
+}
+
 .nickname-submit {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -210,6 +214,27 @@ dd {
   color: #020617;
   background: #a3e635;
   font-weight: 900;
+}
+
+.nickname-form button.primary {
+  width: auto;
+  min-width: 96px;
+  background: #38bdf8;
+}
+
+.nickname-form button.primary:hover {
+  background: #67e8f9;
+}
+
+.submit-status {
+  margin: 0 0 14px;
+  color: #cbd5e1;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.submit-status strong {
+  color: #f8fafc;
 }
 
 .pause-panel {

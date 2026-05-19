@@ -9,10 +9,11 @@ import {
   updateGameState,
   type GameState,
 } from '../game/state';
-import type { Score } from '../shared/scores';
+import { MAX_NICKNAME_LENGTH, normalizeNickname, type Score } from '../shared/scores';
 import type { InputState } from '../game/types';
 
 const BEST_SCORE_KEY = 'dodge.bestScoreMs';
+const NICKNAME_KEY = 'dodge.nickname';
 const IMMEDIATE_INPUT_RESPONSE_MS = 1000 / 60;
 
 type AppElements = {
@@ -43,6 +44,26 @@ const writeBestScore = (score: number) => {
   }
 
   return next;
+};
+
+const readStoredNickname = () => {
+  try {
+    return normalizeNickname(window.localStorage.getItem(NICKNAME_KEY) ?? '');
+  } catch {
+    return '';
+  }
+};
+
+const writeStoredNickname = (value: string) => {
+  const nickname = normalizeNickname(value);
+
+  try {
+    window.localStorage.setItem(NICKNAME_KEY, nickname);
+  } catch {
+    return nickname;
+  }
+
+  return nickname;
 };
 
 const formatScore = (elapsedMs: number) => `${(elapsedMs / 1000).toFixed(1)}s`;
@@ -81,7 +102,9 @@ function clearOverlay(overlay: HTMLElement) {
   overlay.hidden = true;
 }
 
-function showMenu(overlay: HTMLElement, onStart: () => void) {
+function showMenu(overlay: HTMLElement, onStart: (nickname: string) => void) {
+  const storedNickname = readStoredNickname();
+
   setOverlay(
     overlay,
     `
@@ -99,12 +122,54 @@ function showMenu(overlay: HTMLElement, onStart: () => void) {
           <h2>Leaderboard</h2>
           <div id="leaderboard"></div>
         </section>
-        <button type="button" class="primary" data-action="start" data-testid="start-game">Start</button>
+        <form class="nickname-form menu-nickname-form" aria-label="Pilot setup" data-nickname-form>
+          <label for="home-nickname">Nickname</label>
+          <div class="nickname-submit">
+            <input
+              id="home-nickname"
+              name="nickname"
+              type="text"
+              value="${escapeHtml(storedNickname)}"
+              placeholder="pilot"
+              maxlength="${MAX_NICKNAME_LENGTH}"
+              autocomplete="nickname"
+              required
+            />
+            <button type="submit" class="primary" data-testid="start-game">Start</button>
+          </div>
+        </form>
       </div>
     `,
   );
 
-  overlay.querySelector<HTMLButtonElement>('[data-action="start"]')?.addEventListener('click', onStart);
+  const form = overlay.querySelector<HTMLFormElement>('[data-nickname-form]');
+  const input = form?.querySelector<HTMLInputElement>('input[name="nickname"]');
+
+  input?.addEventListener('input', () => {
+    input.setCustomValidity('');
+  });
+
+  form?.addEventListener('submit', (event) => {
+    event.preventDefault();
+
+    const nickname = writeStoredNickname(String(new FormData(form).get('nickname') ?? ''));
+
+    if (!nickname) {
+      if (input) {
+        input.setCustomValidity('닉네임을 입력해주세요.');
+        input.reportValidity();
+      }
+
+      return;
+    }
+
+    if (input) {
+      input.setCustomValidity('');
+      input.value = nickname;
+    }
+
+    onStart(nickname);
+  });
 }
 
 function showPaused(
@@ -134,6 +199,7 @@ function showPaused(
 function showGameOver(
   overlay: HTMLElement,
   state: GameState,
+  nickname: string,
   onRestart: () => void,
 ) {
   const score = state.elapsedMs;
@@ -155,13 +221,7 @@ function showGameOver(
             <dd>${formatScore(best)}</dd>
           </div>
         </dl>
-        <form class="nickname-form" aria-label="Nickname form" data-score-form>
-          <label for="nickname">Nickname</label>
-          <div class="nickname-submit">
-            <input id="nickname" name="nickname" type="text" placeholder="pilot" maxlength="16" autocomplete="nickname" />
-            <button type="submit">Submit</button>
-          </div>
-        </form>
+        <p class="submit-status">닉네임 <strong>${escapeHtml(nickname)}</strong>로 리더보드에 자동 등록합니다.</p>
         <button type="button" class="primary" data-action="restart" data-testid="restart-game">Restart</button>
         <section class="leaderboard" aria-label="Leaderboard">
           <h2>Leaderboard</h2>
@@ -183,9 +243,7 @@ export function mountApp({ root, canvas, overlay }: AppElements) {
   let disposed = false;
   let leaderboardRequestSeq = 0;
   let currentViewSeq = 0;
-  let submitStartedViewSeq = 0;
-  let scoreSubmitInFlight = false;
-  let scoreSubmitSucceeded = false;
+  let activeNickname = readStoredNickname();
   let input: KeyboardInput;
 
   const isEditableTarget = (target: EventTarget | null) =>
@@ -207,12 +265,44 @@ export function mountApp({ root, canvas, overlay }: AppElements) {
     try {
       const scores = await fetchScores();
 
-      if (requestSeq === leaderboardRequestSeq && viewSeq === currentViewSeq && submitStartedViewSeq !== viewSeq) {
+      if (requestSeq === leaderboardRequestSeq && viewSeq === currentViewSeq) {
         leaderboard.innerHTML = renderScores(scores);
       }
     } catch {
-      if (requestSeq === leaderboardRequestSeq && viewSeq === currentViewSeq && submitStartedViewSeq !== viewSeq) {
+      if (requestSeq === leaderboardRequestSeq && viewSeq === currentViewSeq) {
         leaderboard.innerHTML = '<p>Online ranking unavailable.</p>';
+      }
+    }
+  };
+
+  const submitStoredScore = async (
+    nickname: string,
+    survivalMs: number,
+    viewSeq: number,
+  ) => {
+    const leaderboard = overlay.querySelector<HTMLElement>('#leaderboard');
+
+    if (!leaderboard) {
+      return;
+    }
+
+    if (!nickname) {
+      leaderboard.innerHTML = '<p>닉네임을 먼저 저장해주세요.</p>';
+      return;
+    }
+
+    leaderboard.innerHTML = '<p>Submitting...</p>';
+
+    try {
+      const scores = await submitScore({ nickname, survivalMs });
+
+      if (viewSeq === currentViewSeq) {
+        leaderboard.innerHTML = renderScores(scores);
+      }
+    } catch (error: unknown) {
+      if (viewSeq === currentViewSeq) {
+        const message = error instanceof Error ? error.message : 'Online ranking unavailable.';
+        leaderboard.innerHTML = `<p>${escapeHtml(message)}</p>`;
       }
     }
   };
@@ -225,11 +315,9 @@ export function mountApp({ root, canvas, overlay }: AppElements) {
     gameOverShown = true;
     input.reset();
     currentViewSeq += 1;
-    scoreSubmitInFlight = false;
-    scoreSubmitSucceeded = false;
-    submitStartedViewSeq = 0;
-    showGameOver(overlay, state, restart);
-    void loadLeaderboard();
+    activeNickname = readStoredNickname() || activeNickname;
+    showGameOver(overlay, state, activeNickname, restart);
+    void submitStoredScore(activeNickname, Math.round(state.elapsedMs), currentViewSeq);
   };
 
   const advanceGame = (inputState: InputState, deltaMs: number) => {
@@ -255,15 +343,19 @@ export function mountApp({ root, canvas, overlay }: AppElements) {
     onDirectionPressed: handleImmediateDirectionPressed,
   });
 
-  const restart = () => {
+  const restart = (nextNickname?: string) => {
+    const fallbackNickname = readStoredNickname() || activeNickname;
+    const normalizedNickname = normalizeNickname(nextNickname ?? fallbackNickname);
+
+    if (normalizedNickname) {
+      activeNickname = normalizedNickname;
+    }
+
     input.reset();
     state = startGame(state);
     lastFrameTime = performance.now();
     gameOverShown = false;
     currentViewSeq += 1;
-    scoreSubmitInFlight = false;
-    scoreSubmitSucceeded = false;
-    submitStartedViewSeq = 0;
     clearOverlay(overlay);
   };
 
@@ -309,6 +401,13 @@ export function mountApp({ root, canvas, overlay }: AppElements) {
       return;
     }
 
+    const nicknameForm = overlay.querySelector<HTMLFormElement>('[data-nickname-form]');
+
+    if (nicknameForm) {
+      nicknameForm.requestSubmit();
+      return;
+    }
+
     restart();
   };
 
@@ -330,58 +429,6 @@ export function mountApp({ root, canvas, overlay }: AppElements) {
     renderer.render(state);
   };
 
-  const handleScoreSubmit = (event: SubmitEvent) => {
-    const form = event.target instanceof HTMLFormElement ? event.target : null;
-
-    if (!form?.matches('[data-score-form]')) {
-      return;
-    }
-
-    event.preventDefault();
-
-    if (scoreSubmitInFlight || scoreSubmitSucceeded) {
-      return;
-    }
-
-    const leaderboard = overlay.querySelector<HTMLElement>('#leaderboard');
-    const submitButton = form.querySelector<HTMLButtonElement>('button[type="submit"]');
-    const nickname = String(new FormData(form).get('nickname') ?? '');
-    const viewSeq = currentViewSeq;
-
-    scoreSubmitInFlight = true;
-    submitStartedViewSeq = viewSeq;
-
-    if (submitButton) {
-      submitButton.disabled = true;
-    }
-
-    if (leaderboard) {
-      leaderboard.innerHTML = '<p>Submitting...</p>';
-    }
-
-    void submitScore({ nickname, survivalMs: Math.round(state.elapsedMs) })
-      .then((scores) => {
-        if (leaderboard && viewSeq === currentViewSeq) {
-          scoreSubmitSucceeded = true;
-          leaderboard.innerHTML = renderScores(scores);
-        }
-      })
-      .catch((error: unknown) => {
-        if (viewSeq === currentViewSeq) {
-          scoreSubmitInFlight = false;
-
-          if (submitButton) {
-            submitButton.disabled = false;
-          }
-        }
-
-        if (leaderboard && viewSeq === currentViewSeq) {
-          const message = error instanceof Error ? error.message : 'Online ranking unavailable.';
-          leaderboard.innerHTML = `<p>${escapeHtml(message)}</p>`;
-        }
-      });
-  };
-
   root.classList.add('is-mounted');
   currentViewSeq += 1;
   showMenu(overlay, restart);
@@ -389,7 +436,6 @@ export function mountApp({ root, canvas, overlay }: AppElements) {
   renderer.render(state);
   window.addEventListener('resize', handleResize);
   window.addEventListener('keydown', handleGlobalKeyDown, { passive: false });
-  overlay.addEventListener('submit', handleScoreSubmit);
   animationFrameId = requestAnimationFrame(loop);
 
   return () => {
@@ -398,6 +444,5 @@ export function mountApp({ root, canvas, overlay }: AppElements) {
     input.dispose();
     window.removeEventListener('resize', handleResize);
     window.removeEventListener('keydown', handleGlobalKeyDown);
-    overlay.removeEventListener('submit', handleScoreSubmit);
   };
 }

@@ -2,7 +2,7 @@ export const WORLD_WIDTH = 2400;
 export const WORLD_HEIGHT = 1600;
 
 export const PLAYER_RADIUS = 12;
-export const PLAYER_SPEED = 760;
+export const PLAYER_SPEED = 500;
 export const PLAYER_HIT_INVULNERABLE_MS = 900;
 
 export const MAX_BULLETS = 260;

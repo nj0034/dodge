@@ -23,7 +23,7 @@ describe('player', () => {
     const player = createPlayer(2400, 1600);
 
     expect(player.radius).toBe(12);
-    expect(player.speed).toBe(760);
+    expect(player.speed).toBe(500);
   });
 
   it('consumes shield on first hit and dies on second hit', () => {
