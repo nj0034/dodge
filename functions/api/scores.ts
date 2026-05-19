@@ -34,6 +34,10 @@ const jsonHeaders = {
   'cache-control': 'no-store',
 };
 
+function isScorePayload(payload: unknown): payload is { nickname: unknown; survivalMs: unknown } {
+  return payload !== null && typeof payload === 'object' && !Array.isArray(payload);
+}
+
 async function readTopScores(env: ScoresEnv): Promise<Score[]> {
   const result = await env.DB.prepare(
     `SELECT nickname, survival_ms, created_at
@@ -60,8 +64,12 @@ function jsonResponse(body: unknown, init?: ResponseInit): Response {
 }
 
 export async function onRequestGet(context: PagesFunctionContext): Promise<Response> {
-  const scores = await readTopScores(context.env);
-  return jsonResponse({ scores });
+  try {
+    const scores = await readTopScores(context.env);
+    return jsonResponse({ scores });
+  } catch {
+    return jsonResponse({ error: 'Leaderboard request failed.' }, { status: 500 });
+  }
 }
 
 export async function onRequestPost(context: PagesFunctionContext): Promise<Response> {
@@ -73,15 +81,23 @@ export async function onRequestPost(context: PagesFunctionContext): Promise<Resp
     return jsonResponse({ error: 'Invalid JSON payload' }, { status: 400 });
   }
 
-  const validation = validateScoreSubmission(payload as { nickname: unknown; survivalMs: unknown });
+  if (!isScorePayload(payload)) {
+    return jsonResponse({ error: 'Invalid score payload' }, { status: 400 });
+  }
+
+  const validation = validateScoreSubmission(payload);
   if (!validation.ok) {
     return jsonResponse({ error: validation.message }, { status: 400 });
   }
 
-  await context.env.DB.prepare('INSERT INTO scores (nickname, survival_ms) VALUES (?, ?)')
-    .bind(validation.nickname, validation.survivalMs)
-    .run();
+  try {
+    await context.env.DB.prepare('INSERT INTO scores (nickname, survival_ms) VALUES (?, ?)')
+      .bind(validation.nickname, validation.survivalMs)
+      .run();
 
-  const scores = await readTopScores(context.env);
-  return jsonResponse({ scores });
+    const scores = await readTopScores(context.env);
+    return jsonResponse({ scores });
+  } catch {
+    return jsonResponse({ error: 'Leaderboard request failed.' }, { status: 500 });
+  }
 }
