@@ -1,8 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import { createRng } from '../../src/game/rng';
-import { spawnBullet, updateBullets } from '../../src/game/bullets';
+import {
+  chooseBulletKind,
+  spawnBullet,
+  updateBullets,
+} from '../../src/game/bullets';
 import { createGameState, updateGameState } from '../../src/game/state';
-import type { Bullet } from '../../src/game/types';
+import type { Bullet, BulletKind } from '../../src/game/types';
+
+const fakeRng = (value: number) => ({
+  next: () => value,
+});
 
 describe('bullets', () => {
   it('spawns bullets from outside an edge toward the player', () => {
@@ -92,6 +100,29 @@ describe('bullets', () => {
 
     expect(updatedAgain.bullets).toHaveLength(3);
     expect(updatedAgain.nextId).toBe(4);
+  });
+});
+
+describe('chooseBulletKind', () => {
+  const allKinds: BulletKind[] = [
+    'basic',
+    'heavy',
+    'dash',
+    'spiral',
+    'split',
+  ];
+
+  it('selects rare split bullets only on the highest rolls', () => {
+    expect(chooseBulletKind(allKinds, fakeRng(0.95))).toBe('split');
+  });
+
+  it('keeps near-high rolls below the split threshold on spiral', () => {
+    expect(chooseBulletKind(allKinds, fakeRng(0.93))).toBe('spiral');
+  });
+
+  it('selects from early unlocked kinds using weighted thresholds', () => {
+    expect(chooseBulletKind(['basic', 'heavy'], fakeRng(0.9))).toBe('heavy');
+    expect(chooseBulletKind(['basic', 'heavy'], fakeRng(0.1))).toBe('basic');
   });
 });
 

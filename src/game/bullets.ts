@@ -71,7 +71,13 @@ export function chooseBulletKind(
   unlockedKinds: BulletKind[],
   rng: Rng,
 ): BulletKind {
-  return unlockedKinds[Math.floor(rng.next() * unlockedKinds.length)] ?? 'basic';
+  const roll = rng.next();
+
+  if (unlockedKinds.includes('split') && roll > 0.94) return 'split';
+  if (unlockedKinds.includes('spiral') && roll > 0.8) return 'spiral';
+  if (unlockedKinds.includes('dash') && roll > 0.62) return 'dash';
+  if (unlockedKinds.includes('heavy') && roll > 0.42) return 'heavy';
+  return 'basic';
 }
 
 export function spawnBullet(input: SpawnBulletInput): Bullet {
