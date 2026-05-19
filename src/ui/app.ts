@@ -16,17 +16,26 @@ type AppElements = {
 };
 
 const readBestScore = () => {
-  const value = window.localStorage.getItem(BEST_SCORE_KEY);
-  const parsed = value === null ? 0 : Number.parseInt(value, 10);
+  try {
+    const value = window.localStorage.getItem(BEST_SCORE_KEY);
+    const parsed = value === null ? 0 : Number.parseInt(value, 10);
 
-  return Number.isFinite(parsed) ? parsed : 0;
+    return Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
+  } catch {
+    return 0;
+  }
 };
 
 const writeBestScore = (score: number) => {
   const previous = readBestScore();
-  const next = Math.max(previous, score);
+  const next = Math.max(0, previous, score);
 
-  window.localStorage.setItem(BEST_SCORE_KEY, String(next));
+  try {
+    window.localStorage.setItem(BEST_SCORE_KEY, String(next));
+  } catch {
+    return next;
+  }
+
   return next;
 };
 
@@ -110,6 +119,8 @@ export function mountApp({ root, canvas, overlay }: AppElements) {
   let state = createGameState();
   let lastFrameTime = 0;
   let gameOverShown = false;
+  let animationFrameId = 0;
+  let disposed = false;
 
   const restart = () => {
     input.reset();
@@ -120,6 +131,10 @@ export function mountApp({ root, canvas, overlay }: AppElements) {
   };
 
   const loop = (time: number) => {
+    if (disposed) {
+      return;
+    }
+
     const deltaMs = lastFrameTime === 0 ? 0 : time - lastFrameTime;
     lastFrameTime = time;
 
@@ -132,7 +147,7 @@ export function mountApp({ root, canvas, overlay }: AppElements) {
       showGameOver(overlay, state, restart);
     }
 
-    requestAnimationFrame(loop);
+    animationFrameId = requestAnimationFrame(loop);
   };
 
   const handleResize = () => {
@@ -144,9 +159,11 @@ export function mountApp({ root, canvas, overlay }: AppElements) {
   showMenu(overlay, restart);
   renderer.render(state);
   window.addEventListener('resize', handleResize);
-  requestAnimationFrame(loop);
+  animationFrameId = requestAnimationFrame(loop);
 
   return () => {
+    disposed = true;
+    cancelAnimationFrame(animationFrameId);
     input.dispose();
     window.removeEventListener('resize', handleResize);
   };
