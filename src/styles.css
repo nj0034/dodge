@@ -184,6 +184,12 @@ dd {
   margin: 0 0 14px;
 }
 
+.nickname-submit {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
 .nickname-form input {
   width: 100%;
   height: 40px;
@@ -197,6 +203,15 @@ dd {
   color: #64748b;
 }
 
+.nickname-form button {
+  min-width: 84px;
+  height: 40px;
+  padding: 0 12px;
+  color: #020617;
+  background: #a3e635;
+  font-weight: 900;
+}
+
 .leaderboard {
   display: grid;
   gap: 6px;
@@ -207,6 +222,35 @@ dd {
   color: #94a3b8;
   font-size: 13px;
   line-height: 1.45;
+}
+
+.score-list {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.score-list li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  color: #cbd5e1;
+  font-size: 13px;
+  line-height: 1.3;
+}
+
+.score-list span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.score-list strong {
+  color: #f8fafc;
+  font-size: 14px;
 }
 
 @media (max-width: 720px) {

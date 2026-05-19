@@ -1,3 +1,4 @@
+import { fetchScores, submitScore } from '../leaderboard/client';
 import { createKeyboardInput } from '../game/input';
 import { createRenderer } from '../game/renderer';
 import {
@@ -6,6 +7,7 @@ import {
   updateGameState,
   type GameState,
 } from '../game/state';
+import type { Score } from '../shared/scores';
 
 const BEST_SCORE_KEY = 'dodge.bestScoreMs';
 
@@ -41,6 +43,30 @@ const writeBestScore = (score: number) => {
 
 const formatScore = (elapsedMs: number) => `${(elapsedMs / 1000).toFixed(1)}s`;
 
+const escapeHtml = (value: string) =>
+  value.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;');
+
+function renderScores(scores: Score[]) {
+  if (scores.length === 0) {
+    return '<p>No online scores yet.</p>';
+  }
+
+  return `
+    <ol class="score-list">
+      ${scores
+        .map(
+          (score) => `
+            <li>
+              <span>${escapeHtml(score.nickname)}</span>
+              <strong>${formatScore(score.survivalMs)}</strong>
+            </li>
+          `,
+        )
+        .join('')}
+    </ol>
+  `;
+}
+
 function setOverlay(overlay: HTMLElement, html: string) {
   overlay.innerHTML = html;
   overlay.hidden = false;
@@ -65,6 +91,10 @@ function showMenu(overlay: HTMLElement, onStart: () => void) {
             <dd>${formatScore(readBestScore())}</dd>
           </div>
         </dl>
+        <section class="leaderboard" aria-label="Leaderboard">
+          <h2>Leaderboard</h2>
+          <div id="leaderboard"></div>
+        </section>
         <button type="button" class="primary" data-action="start">Start</button>
       </div>
     `,
@@ -97,14 +127,17 @@ function showGameOver(
             <dd>${formatScore(best)}</dd>
           </div>
         </dl>
-        <form class="nickname-form" aria-label="Nickname form">
+        <form class="nickname-form" aria-label="Nickname form" data-score-form>
           <label for="nickname">Nickname</label>
-          <input id="nickname" name="nickname" type="text" placeholder="다음 작업에서 저장됩니다" disabled />
+          <div class="nickname-submit">
+            <input id="nickname" name="nickname" type="text" placeholder="pilot" maxlength="16" autocomplete="nickname" />
+            <button type="submit">Submit</button>
+          </div>
         </form>
         <button type="button" class="primary" data-action="restart">Restart</button>
         <section class="leaderboard" aria-label="Leaderboard">
           <h2>Leaderboard</h2>
-          <p>네트워크 순위표는 다음 작업에서 연결됩니다.</p>
+          <div id="leaderboard"></div>
         </section>
       </div>
     `,
@@ -121,6 +154,22 @@ export function mountApp({ root, canvas, overlay }: AppElements) {
   let gameOverShown = false;
   let animationFrameId = 0;
   let disposed = false;
+
+  const loadLeaderboard = async () => {
+    const leaderboard = overlay.querySelector<HTMLElement>('#leaderboard');
+
+    if (!leaderboard) {
+      return;
+    }
+
+    leaderboard.innerHTML = '<p>Loading...</p>';
+
+    try {
+      leaderboard.innerHTML = renderScores(await fetchScores());
+    } catch {
+      leaderboard.innerHTML = '<p>Online ranking unavailable.</p>';
+    }
+  };
 
   const restart = () => {
     input.reset();
@@ -145,6 +194,7 @@ export function mountApp({ root, canvas, overlay }: AppElements) {
       gameOverShown = true;
       input.reset();
       showGameOver(overlay, state, restart);
+      void loadLeaderboard();
     }
 
     animationFrameId = requestAnimationFrame(loop);
@@ -155,10 +205,42 @@ export function mountApp({ root, canvas, overlay }: AppElements) {
     renderer.render(state);
   };
 
+  const handleScoreSubmit = (event: SubmitEvent) => {
+    const form = event.target instanceof HTMLFormElement ? event.target : null;
+
+    if (!form?.matches('[data-score-form]')) {
+      return;
+    }
+
+    event.preventDefault();
+
+    const leaderboard = overlay.querySelector<HTMLElement>('#leaderboard');
+    const nickname = String(new FormData(form).get('nickname') ?? '');
+
+    if (leaderboard) {
+      leaderboard.innerHTML = '<p>Submitting...</p>';
+    }
+
+    void submitScore({ nickname, survivalMs: Math.round(state.elapsedMs) })
+      .then((scores) => {
+        if (leaderboard) {
+          leaderboard.innerHTML = renderScores(scores);
+        }
+      })
+      .catch((error: unknown) => {
+        if (leaderboard) {
+          const message = error instanceof Error ? error.message : 'Online ranking unavailable.';
+          leaderboard.innerHTML = `<p>${escapeHtml(message)}</p>`;
+        }
+      });
+  };
+
   root.classList.add('is-mounted');
   showMenu(overlay, restart);
+  void loadLeaderboard();
   renderer.render(state);
   window.addEventListener('resize', handleResize);
+  overlay.addEventListener('submit', handleScoreSubmit);
   animationFrameId = requestAnimationFrame(loop);
 
   return () => {
@@ -166,5 +248,6 @@ export function mountApp({ root, canvas, overlay }: AppElements) {
     cancelAnimationFrame(animationFrameId);
     input.dispose();
     window.removeEventListener('resize', handleResize);
+    overlay.removeEventListener('submit', handleScoreSubmit);
   };
 }
