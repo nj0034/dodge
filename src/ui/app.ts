@@ -95,7 +95,7 @@ function showMenu(overlay: HTMLElement, onStart: () => void) {
           <h2>Leaderboard</h2>
           <div id="leaderboard"></div>
         </section>
-        <button type="button" class="primary" data-action="start">Start</button>
+        <button type="button" class="primary" data-action="start" data-testid="start-game">Start</button>
       </div>
     `,
   );
@@ -134,7 +134,7 @@ function showGameOver(
             <button type="submit">Submit</button>
           </div>
         </form>
-        <button type="button" class="primary" data-action="restart">Restart</button>
+        <button type="button" class="primary" data-action="restart" data-testid="restart-game">Restart</button>
         <section class="leaderboard" aria-label="Leaderboard">
           <h2>Leaderboard</h2>
           <div id="leaderboard"></div>
