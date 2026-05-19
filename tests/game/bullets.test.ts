@@ -79,7 +79,7 @@ describe('bullets', () => {
     expect(updated.nextId).toBe(2);
   });
 
-  it('removes old off-screen bullets', () => {
+  it('removes bullets outside cleanup bounds', () => {
     const bullet: Bullet = {
       id: 1,
       kind: 'basic',
