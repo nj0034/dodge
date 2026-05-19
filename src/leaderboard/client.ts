@@ -10,6 +10,21 @@ type ErrorResponse = {
 
 const INVALID_RESPONSE_MESSAGE = 'Leaderboard response was invalid.';
 
+function isScore(value: unknown): value is Score {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+
+  const score = value as Record<string, unknown>;
+
+  return (
+    typeof score.nickname === 'string' &&
+    typeof score.survivalMs === 'number' &&
+    Number.isFinite(score.survivalMs) &&
+    typeof score.createdAt === 'string'
+  );
+}
+
 async function readErrorMessage(response: Response): Promise<string> {
   try {
     const data = (await response.json()) as ErrorResponse;
@@ -28,7 +43,7 @@ async function readScores(response: Response): Promise<Score[]> {
   try {
     const data = (await response.json()) as ScoresResponse;
 
-    if (Array.isArray(data.scores)) {
+    if (Array.isArray(data.scores) && data.scores.every(isScore)) {
       return data.scores;
     }
   } catch {

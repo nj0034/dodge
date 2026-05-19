@@ -40,6 +40,24 @@ describe('leaderboard client', () => {
     await expect(fetchScores()).rejects.toThrow('Leaderboard response was invalid.');
   });
 
+  it('fetchScores throws a friendly error when a score has non-string nickname', async () => {
+    mockFetch(Response.json({ scores: [{ nickname: null, survivalMs: 12_345, createdAt: '2026-05-19T00:00:00.000Z' }] }));
+
+    await expect(fetchScores()).rejects.toThrow('Leaderboard response was invalid.');
+  });
+
+  it('fetchScores throws a friendly error when a score has non-number survivalMs', async () => {
+    mockFetch(Response.json({ scores: [{ nickname: 'pilot', survivalMs: 'bad', createdAt: '2026-05-19T00:00:00.000Z' }] }));
+
+    await expect(fetchScores()).rejects.toThrow('Leaderboard response was invalid.');
+  });
+
+  it('fetchScores throws a friendly error when a score has non-string createdAt', async () => {
+    mockFetch(Response.json({ scores: [{ nickname: 'pilot', survivalMs: 12_345, createdAt: null }] }));
+
+    await expect(fetchScores()).rejects.toThrow('Leaderboard response was invalid.');
+  });
+
   it('submitScore posts JSON and returns scores on ok JSON', async () => {
     mockFetch(Response.json({ scores }));
 
