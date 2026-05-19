@@ -6,7 +6,7 @@ import {
 import type { Bounds, InputState, Player, Vec2 } from './types';
 
 type RegisterPlayerHitOptions = {
-  respectInvulnerability?: boolean;
+  ignoreInvulnerability?: boolean;
 };
 
 const clamp = (value: number, min: number, max: number) =>
@@ -62,7 +62,7 @@ export function registerPlayerHit(
     return player;
   }
 
-  if (options?.respectInvulnerability === true && player.invulnerableMs > 0) {
+  if (options?.ignoreInvulnerability !== true && player.invulnerableMs > 0) {
     return player;
   }
 

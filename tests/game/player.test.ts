@@ -25,17 +25,15 @@ describe('player', () => {
     expect(shielded.shieldAvailable).toBe(false);
     expect(shielded.alive).toBe(true);
 
-    const dead = registerPlayerHit(shielded);
+    const dead = registerPlayerHit(shielded, { ignoreInvulnerability: true });
 
     expect(dead.shieldAvailable).toBe(false);
     expect(dead.alive).toBe(false);
   });
 
-  it('can respect invulnerability after shield is consumed', () => {
+  it('respects invulnerability after shield is consumed by default', () => {
     const shielded = registerPlayerHit(createPlayer(100, 100));
-    const stillShielded = registerPlayerHit(shielded, {
-      respectInvulnerability: true,
-    });
+    const stillShielded = registerPlayerHit(shielded);
 
     expect(stillShielded.alive).toBe(true);
     expect(stillShielded.shieldAvailable).toBe(false);
