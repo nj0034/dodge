@@ -13,8 +13,10 @@ type Star = Vec2 & {
   blur: number;
 };
 
-const STAR_COUNT = 150;
-const WARNING_LINE_LENGTH = 1580;
+const STAR_COUNT = 230;
+const WARNING_LINE_LENGTH = 2000;
+const HUD_SCALE = WORLD_WIDTH / 1280;
+const PLAYER_SHIP_SCALE = 1.18;
 
 const stars: Star[] = Array.from({ length: STAR_COUNT }, (_, index) => {
   const seed = Math.sin((index + 1) * 97.31) * 10000;
@@ -26,9 +28,9 @@ const stars: Star[] = Array.from({ length: STAR_COUNT }, (_, index) => {
   return {
     x: next(1) * WORLD_WIDTH,
     y: next(2) * WORLD_HEIGHT,
-    radius: 0.6 + next(3) * 1.4,
-    alpha: 0.1 + next(4) * 0.16,
-    blur: 5 + next(5) * 10,
+    radius: 0.7 + next(3) * 1.6,
+    alpha: 0.09 + next(4) * 0.14,
+    blur: 6 + next(5) * 11,
   };
 });
 
@@ -132,12 +134,13 @@ function drawPlayer(ctx: CanvasRenderingContext2D, state: GameState) {
     ctx.shadowBlur = 14;
     ctx.shadowColor = '#22d3ee';
     ctx.beginPath();
-    ctx.arc(0, 0, player.radius + 10, 0, Math.PI * 2);
+    ctx.arc(0, 0, player.radius + 14, 0, Math.PI * 2);
     ctx.stroke();
   }
 
   ctx.globalAlpha = player.alive ? 1 : 0.35;
   ctx.imageSmoothingEnabled = false;
+  ctx.scale(PLAYER_SHIP_SCALE, PLAYER_SHIP_SCALE);
 
   ctx.shadowBlur = 10;
   ctx.shadowColor = '#60a5fa';
@@ -187,6 +190,7 @@ function drawHud(ctx: CanvasRenderingContext2D, state: GameState) {
     state.player.shieldAvailable || state.player.invulnerableMs > 0 ? 'SHIELD ON' : 'SHIELD OFF';
 
   ctx.save();
+  ctx.scale(HUD_SCALE, HUD_SCALE);
   ctx.fillStyle = 'rgba(2, 6, 23, 0.58)';
   ctx.strokeStyle = 'rgba(148, 163, 184, 0.22)';
   ctx.lineWidth = 1;
