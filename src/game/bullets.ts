@@ -55,9 +55,9 @@ function createEdgePosition(rng: Rng, bounds: Bounds): Vec2 {
 }
 
 function bulletRadius(kind: BulletKind): number {
-  if (kind === 'heavy') return 16;
-  if (kind === 'dash') return 9;
-  return 10;
+  if (kind === 'heavy') return 18;
+  if (kind === 'dash') return 10;
+  return 11;
 }
 
 function speedMultiplier(kind: BulletKind): number {
@@ -82,7 +82,7 @@ export function chooseBulletKind(
 
 export function spawnBullet(input: SpawnBulletInput): Bullet {
   const position = createEdgePosition(input.rng, input.bounds);
-  const aimOffset = input.kind === 'heavy' ? 0 : 36;
+  const aimOffset = input.kind === 'heavy' ? 0 : 48;
   const target = {
     x: input.playerPosition.x + (input.rng.next() - 0.5) * aimOffset,
     y: input.playerPosition.y + (input.rng.next() - 0.5) * aimOffset,
@@ -153,7 +153,7 @@ function createSplitChildren(bullet: Bullet, nextId: number): Bullet[] {
     kind: 'basic',
     position: bullet.position,
     velocity,
-    radius: 8,
+    radius: 9,
     color: BULLET_COLORS.basic,
     ageMs: 0,
     delayMs: 0,

@@ -22,6 +22,6 @@ describe('getDifficulty', () => {
 
     expect(late.spawnIntervalMs).toBeGreaterThanOrEqual(150);
     expect(late.maxBullets).toBeLessThanOrEqual(260);
-    expect(late.baseSpeed).toBeLessThanOrEqual(360);
+    expect(late.baseSpeed).toBeLessThanOrEqual(430);
   });
 });

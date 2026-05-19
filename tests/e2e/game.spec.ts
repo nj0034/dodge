@@ -31,7 +31,7 @@ const samplePlayerRegions = async (canvas: Locator) =>
 
     const centerX = canvasElement.width / 2;
     const centerY = canvasElement.height / 2;
-    const rightShiftX = centerX + canvasElement.width * (90 / 960);
+    const rightShiftX = centerX + canvasElement.width * (120 / 1280);
 
     return {
       center: sampleChecksum(centerX, centerY),
