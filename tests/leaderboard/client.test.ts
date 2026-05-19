@@ -28,6 +28,29 @@ describe('leaderboard client', () => {
     await expect(fetchScores()).rejects.toThrow('Try again later.');
   });
 
+  it('fetchScores throws a friendly error when ok JSON has no scores', async () => {
+    mockFetch(Response.json({}));
+
+    await expect(fetchScores()).rejects.toThrow('Leaderboard response was invalid.');
+  });
+
+  it('fetchScores throws a friendly error when ok body is invalid JSON', async () => {
+    mockFetch(new Response('not json'));
+
+    await expect(fetchScores()).rejects.toThrow('Leaderboard response was invalid.');
+  });
+
+  it('submitScore posts JSON and returns scores on ok JSON', async () => {
+    mockFetch(Response.json({ scores }));
+
+    await expect(submitScore({ nickname: 'pilot', survivalMs: 12_345 })).resolves.toEqual(scores);
+    expect(globalThis.fetch).toHaveBeenCalledWith('/api/scores', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nickname: 'pilot', survivalMs: 12_345 }),
+    });
+  });
+
   it('submitScore throws the server error on non-ok JSON', async () => {
     mockFetch(Response.json({ error: 'Nickname is required.' }, { status: 400 }));
 

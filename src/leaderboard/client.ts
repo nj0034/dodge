@@ -8,6 +8,8 @@ type ErrorResponse = {
   error?: string;
 };
 
+const INVALID_RESPONSE_MESSAGE = 'Leaderboard response was invalid.';
+
 async function readErrorMessage(response: Response): Promise<string> {
   try {
     const data = (await response.json()) as ErrorResponse;
@@ -22,6 +24,20 @@ async function readErrorMessage(response: Response): Promise<string> {
   return 'Leaderboard request failed.';
 }
 
+async function readScores(response: Response): Promise<Score[]> {
+  try {
+    const data = (await response.json()) as ScoresResponse;
+
+    if (Array.isArray(data.scores)) {
+      return data.scores;
+    }
+  } catch {
+    throw new Error(INVALID_RESPONSE_MESSAGE);
+  }
+
+  throw new Error(INVALID_RESPONSE_MESSAGE);
+}
+
 export async function fetchScores(): Promise<Score[]> {
   const response = await fetch('/api/scores');
 
@@ -29,8 +45,7 @@ export async function fetchScores(): Promise<Score[]> {
     throw new Error(await readErrorMessage(response));
   }
 
-  const data = (await response.json()) as ScoresResponse;
-  return data.scores;
+  return readScores(response);
 }
 
 export async function submitScore({
@@ -50,6 +65,5 @@ export async function submitScore({
     throw new Error(await readErrorMessage(response));
   }
 
-  const data = (await response.json()) as ScoresResponse;
-  return data.scores;
+  return readScores(response);
 }

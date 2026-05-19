@@ -154,9 +154,16 @@ export function mountApp({ root, canvas, overlay }: AppElements) {
   let gameOverShown = false;
   let animationFrameId = 0;
   let disposed = false;
+  let leaderboardRequestSeq = 0;
+  let currentViewSeq = 0;
+  let submitStartedViewSeq = 0;
+  let scoreSubmitInFlight = false;
+  let scoreSubmitSucceeded = false;
 
   const loadLeaderboard = async () => {
     const leaderboard = overlay.querySelector<HTMLElement>('#leaderboard');
+    const requestSeq = ++leaderboardRequestSeq;
+    const viewSeq = currentViewSeq;
 
     if (!leaderboard) {
       return;
@@ -165,9 +172,15 @@ export function mountApp({ root, canvas, overlay }: AppElements) {
     leaderboard.innerHTML = '<p>Loading...</p>';
 
     try {
-      leaderboard.innerHTML = renderScores(await fetchScores());
+      const scores = await fetchScores();
+
+      if (requestSeq === leaderboardRequestSeq && viewSeq === currentViewSeq && submitStartedViewSeq !== viewSeq) {
+        leaderboard.innerHTML = renderScores(scores);
+      }
     } catch {
-      leaderboard.innerHTML = '<p>Online ranking unavailable.</p>';
+      if (requestSeq === leaderboardRequestSeq && viewSeq === currentViewSeq && submitStartedViewSeq !== viewSeq) {
+        leaderboard.innerHTML = '<p>Online ranking unavailable.</p>';
+      }
     }
   };
 
@@ -176,6 +189,10 @@ export function mountApp({ root, canvas, overlay }: AppElements) {
     state = startGame(state);
     lastFrameTime = performance.now();
     gameOverShown = false;
+    currentViewSeq += 1;
+    scoreSubmitInFlight = false;
+    scoreSubmitSucceeded = false;
+    submitStartedViewSeq = 0;
     clearOverlay(overlay);
   };
 
@@ -193,6 +210,10 @@ export function mountApp({ root, canvas, overlay }: AppElements) {
     if (state.status === 'gameOver' && !gameOverShown) {
       gameOverShown = true;
       input.reset();
+      currentViewSeq += 1;
+      scoreSubmitInFlight = false;
+      scoreSubmitSucceeded = false;
+      submitStartedViewSeq = 0;
       showGameOver(overlay, state, restart);
       void loadLeaderboard();
     }
@@ -214,8 +235,21 @@ export function mountApp({ root, canvas, overlay }: AppElements) {
 
     event.preventDefault();
 
+    if (scoreSubmitInFlight || scoreSubmitSucceeded) {
+      return;
+    }
+
     const leaderboard = overlay.querySelector<HTMLElement>('#leaderboard');
+    const submitButton = form.querySelector<HTMLButtonElement>('button[type="submit"]');
     const nickname = String(new FormData(form).get('nickname') ?? '');
+    const viewSeq = currentViewSeq;
+
+    scoreSubmitInFlight = true;
+    submitStartedViewSeq = viewSeq;
+
+    if (submitButton) {
+      submitButton.disabled = true;
+    }
 
     if (leaderboard) {
       leaderboard.innerHTML = '<p>Submitting...</p>';
@@ -223,12 +257,21 @@ export function mountApp({ root, canvas, overlay }: AppElements) {
 
     void submitScore({ nickname, survivalMs: Math.round(state.elapsedMs) })
       .then((scores) => {
-        if (leaderboard) {
+        if (leaderboard && viewSeq === currentViewSeq) {
+          scoreSubmitSucceeded = true;
           leaderboard.innerHTML = renderScores(scores);
         }
       })
       .catch((error: unknown) => {
-        if (leaderboard) {
+        if (viewSeq === currentViewSeq) {
+          scoreSubmitInFlight = false;
+
+          if (submitButton) {
+            submitButton.disabled = false;
+          }
+        }
+
+        if (leaderboard && viewSeq === currentViewSeq) {
           const message = error instanceof Error ? error.message : 'Online ranking unavailable.';
           leaderboard.innerHTML = `<p>${escapeHtml(message)}</p>`;
         }
@@ -236,6 +279,7 @@ export function mountApp({ root, canvas, overlay }: AppElements) {
   };
 
   root.classList.add('is-mounted');
+  currentViewSeq += 1;
   showMenu(overlay, restart);
   void loadLeaderboard();
   renderer.render(state);
