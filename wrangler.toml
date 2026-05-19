@@ -1,4 +1,15 @@
 "$schema" = "./node_modules/wrangler/config-schema.json"
 name = "dodge"
-pages_build_output_dir = "./dist"
+main = "src/worker.ts"
 compatibility_date = "2026-05-19"
+
+[assets]
+directory = "./dist"
+not_found_handling = "single-page-application"
+binding = "ASSETS"
+run_worker_first = ["/api/*"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "dodge-scores"
+database_id = "8146d8b1-8b81-4355-94a7-c95bdb84e202"

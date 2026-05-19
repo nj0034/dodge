@@ -1,6 +1,6 @@
 # Dodge
 
-Arrow-key space dodge game built with Vite, TypeScript, Canvas, Cloudflare Pages Functions, and Cloudflare D1.
+Arrow-key space dodge game built with Vite, TypeScript, Canvas, Cloudflare Workers Static Assets, and Cloudflare D1.
 
 Controls:
 
@@ -22,11 +22,12 @@ npm run build
 npm run e2e
 ```
 
-## Cloudflare Pages
+## Cloudflare Workers
 
 - Build command: `npm run build`
-- Output directory: `dist`
-- Functions directory: `functions`
+- Deploy command: `npx wrangler deploy`
+- Root directory: repository root
+- Static assets directory: `dist`
 - D1 binding: `DB`
 
-See `docs/deployment/cloudflare-pages.md` for the setup steps.
+See `docs/deployment/cloudflare-workers.md` for the setup steps.
