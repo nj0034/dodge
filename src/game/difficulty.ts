@@ -9,7 +9,8 @@ const clamp = (value: number, min: number, max: number) =>
   Math.max(min, Math.min(max, value));
 
 export function getDifficulty(elapsedMs: number): Difficulty {
-  const seconds = Math.max(0, elapsedMs / 1000);
+  const clampedElapsedMs = Math.max(0, elapsedMs);
+  const seconds = clampedElapsedMs / 1000;
   const unlockedKinds: BulletKind[] = ['basic'];
 
   if (seconds >= 20) unlockedKinds.push('heavy');
@@ -18,7 +19,7 @@ export function getDifficulty(elapsedMs: number): Difficulty {
   if (seconds >= 90) unlockedKinds.push('split');
 
   return {
-    elapsedMs,
+    elapsedMs: clampedElapsedMs,
     spawnIntervalMs: clamp(900 - seconds * 12, MIN_SPAWN_INTERVAL_MS, 900),
     baseSpeed: clamp(120 + seconds * 3.2, 120, MAX_BULLET_SPEED),
     maxBullets: Math.floor(clamp(32 + seconds * 2.4, 32, MAX_BULLETS)),

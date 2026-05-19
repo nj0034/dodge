@@ -5,6 +5,10 @@ import {
 } from './config';
 import type { Bounds, InputState, Player, Vec2 } from './types';
 
+type RegisterPlayerHitOptions = {
+  respectInvulnerability?: boolean;
+};
+
 const clamp = (value: number, min: number, max: number) =>
   Math.max(min, Math.min(max, value));
 
@@ -50,8 +54,15 @@ export function movePlayer(
   };
 }
 
-export function registerPlayerHit(player: Player): Player {
+export function registerPlayerHit(
+  player: Player,
+  options?: RegisterPlayerHitOptions,
+): Player {
   if (!player.alive) {
+    return player;
+  }
+
+  if (options?.respectInvulnerability === true && player.invulnerableMs > 0) {
     return player;
   }
 

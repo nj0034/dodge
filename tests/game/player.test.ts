@@ -30,4 +30,14 @@ describe('player', () => {
     expect(dead.shieldAvailable).toBe(false);
     expect(dead.alive).toBe(false);
   });
+
+  it('can respect invulnerability after shield is consumed', () => {
+    const shielded = registerPlayerHit(createPlayer(100, 100));
+    const stillShielded = registerPlayerHit(shielded, {
+      respectInvulnerability: true,
+    });
+
+    expect(stillShielded.alive).toBe(true);
+    expect(stillShielded.shieldAvailable).toBe(false);
+  });
 });

@@ -6,6 +6,10 @@ describe('getDifficulty', () => {
     expect(getDifficulty(0).unlockedKinds).toEqual(['basic']);
   });
 
+  it('clamps negative elapsed time to zero', () => {
+    expect(getDifficulty(-1000).elapsedMs).toBe(0);
+  });
+
   it('unlocks patterns at the designed thresholds', () => {
     expect(getDifficulty(20_000).unlockedKinds).toContain('heavy');
     expect(getDifficulty(40_000).unlockedKinds).toContain('dash');
