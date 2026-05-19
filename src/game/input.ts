@@ -20,7 +20,14 @@ export type KeyboardInput = {
   dispose: () => void;
 };
 
-export function createKeyboardInput(target: Window = window): KeyboardInput {
+export type KeyboardInputOptions = {
+  onDirectionPressed?: (input: InputState) => void;
+};
+
+export function createKeyboardInput(
+  target: Window = window,
+  options: KeyboardInputOptions = {},
+): KeyboardInput {
   const current = createEmptyInput();
 
   const handleKey = (event: KeyboardEvent, pressed: boolean) => {
@@ -32,6 +39,10 @@ export function createKeyboardInput(target: Window = window): KeyboardInput {
 
     event.preventDefault();
     current[direction] = pressed;
+
+    if (pressed && !event.repeat) {
+      options.onDirectionPressed?.(current);
+    }
   };
 
   const handleKeyDown = (event: KeyboardEvent) => handleKey(event, true);

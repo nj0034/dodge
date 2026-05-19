@@ -1,5 +1,5 @@
 import { fetchScores, submitScore } from '../leaderboard/client';
-import { createKeyboardInput } from '../game/input';
+import { createKeyboardInput, type KeyboardInput } from '../game/input';
 import { createRenderer } from '../game/renderer';
 import {
   createGameState,
@@ -10,8 +10,10 @@ import {
   type GameState,
 } from '../game/state';
 import type { Score } from '../shared/scores';
+import type { InputState } from '../game/types';
 
 const BEST_SCORE_KEY = 'dodge.bestScoreMs';
+const IMMEDIATE_INPUT_RESPONSE_MS = 1000 / 60;
 
 type AppElements = {
   root: HTMLElement;
@@ -174,7 +176,6 @@ function showGameOver(
 
 export function mountApp({ root, canvas, overlay }: AppElements) {
   const renderer = createRenderer(canvas);
-  const input = createKeyboardInput();
   let state = createGameState();
   let lastFrameTime = 0;
   let gameOverShown = false;
@@ -185,6 +186,7 @@ export function mountApp({ root, canvas, overlay }: AppElements) {
   let submitStartedViewSeq = 0;
   let scoreSubmitInFlight = false;
   let scoreSubmitSucceeded = false;
+  let input: KeyboardInput;
 
   const isEditableTarget = (target: EventTarget | null) =>
     target instanceof HTMLInputElement ||
@@ -214,6 +216,44 @@ export function mountApp({ root, canvas, overlay }: AppElements) {
       }
     }
   };
+
+  const syncGameOverView = () => {
+    if (state.status !== 'gameOver' || gameOverShown) {
+      return;
+    }
+
+    gameOverShown = true;
+    input.reset();
+    currentViewSeq += 1;
+    scoreSubmitInFlight = false;
+    scoreSubmitSucceeded = false;
+    submitStartedViewSeq = 0;
+    showGameOver(overlay, state, restart);
+    void loadLeaderboard();
+  };
+
+  const advanceGame = (inputState: InputState, deltaMs: number) => {
+    state = updateGameState(state, inputState, deltaMs);
+    renderer.render(state);
+    syncGameOverView();
+  };
+
+  const handleImmediateDirectionPressed = (inputState: InputState) => {
+    if (state.status !== 'playing') {
+      return;
+    }
+
+    const now = performance.now();
+    const elapsedSinceLastFrameMs = lastFrameTime === 0 ? 0 : now - lastFrameTime;
+    const deltaMs = Math.max(elapsedSinceLastFrameMs, IMMEDIATE_INPUT_RESPONSE_MS);
+
+    lastFrameTime = now;
+    advanceGame(inputState, deltaMs);
+  };
+
+  input = createKeyboardInput(window, {
+    onDirectionPressed: handleImmediateDirectionPressed,
+  });
 
   const restart = () => {
     input.reset();
@@ -280,19 +320,7 @@ export function mountApp({ root, canvas, overlay }: AppElements) {
     const deltaMs = lastFrameTime === 0 ? 0 : time - lastFrameTime;
     lastFrameTime = time;
 
-    state = updateGameState(state, input.current, deltaMs);
-    renderer.render(state);
-
-    if (state.status === 'gameOver' && !gameOverShown) {
-      gameOverShown = true;
-      input.reset();
-      currentViewSeq += 1;
-      scoreSubmitInFlight = false;
-      scoreSubmitSucceeded = false;
-      submitStartedViewSeq = 0;
-      showGameOver(overlay, state, restart);
-      void loadLeaderboard();
-    }
+    advanceGame(input.current, deltaMs);
 
     animationFrameId = requestAnimationFrame(loop);
   };

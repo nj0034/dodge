@@ -6,6 +6,11 @@ type CanvasSample = {
   right: number;
 };
 
+type ImmediateDirectionResponse = {
+  before: CanvasSample;
+  after: CanvasSample;
+};
+
 const samplePlayerRegions = async (canvas: Locator) =>
   canvas.evaluate((element) => {
     const canvasElement = element as HTMLCanvasElement;
@@ -39,6 +44,65 @@ const samplePlayerRegions = async (canvas: Locator) =>
     } satisfies CanvasSample;
   });
 
+const sampleImmediateDirectionResponse = async (canvas: Locator) =>
+  canvas.evaluate((element) => {
+    const canvasElement = element as HTMLCanvasElement;
+    const context = canvasElement.getContext('2d');
+
+    if (!context) {
+      throw new Error('Canvas 2D context is not available');
+    }
+
+    const sampleChecksum = (x: number, y: number) => {
+      const size = 36;
+      const left = Math.round(x - size / 2);
+      const top = Math.round(y - size / 2);
+      const data = context.getImageData(left, top, size, size).data;
+      let checksum = 0;
+
+      for (let index = 0; index < data.length; index += 4) {
+        checksum += data[index] + data[index + 1] * 3 + data[index + 2] * 5 + data[index + 3] * 7;
+      }
+
+      return checksum;
+    };
+
+    const sample = () => {
+      const centerX = canvasElement.width / 2;
+      const centerY = canvasElement.height / 2;
+      const rightShiftX = centerX + canvasElement.width * (145 / 1600);
+
+      return {
+        center: sampleChecksum(centerX, centerY),
+        right: sampleChecksum(rightShiftX, centerY),
+      };
+    };
+
+    const before = sample();
+
+    window.dispatchEvent(
+      new KeyboardEvent('keydown', {
+        key: 'ArrowRight',
+        code: 'ArrowRight',
+        bubbles: true,
+        cancelable: true,
+      }),
+    );
+
+    const after = sample();
+
+    window.dispatchEvent(
+      new KeyboardEvent('keyup', {
+        key: 'ArrowRight',
+        code: 'ArrowRight',
+        bubbles: true,
+        cancelable: true,
+      }),
+    );
+
+    return { before, after } satisfies ImmediateDirectionResponse;
+  });
+
 test('starts the game and moves with arrow keys', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByRole('heading', { name: '닷지' })).toBeVisible();
@@ -58,6 +122,24 @@ test('starts the game and moves with arrow keys', async ({ page }) => {
 
   expect(Math.abs(afterMove.center - beforeMove.center)).toBeGreaterThan(10_000);
   expect(Math.abs(afterMove.right - beforeMove.right)).toBeGreaterThan(10_000);
+  await expect(page.getByText('GAME OVER')).toHaveCount(0);
+});
+
+test('moves on arrow keydown before the next animation frame', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.getByRole('heading', { name: '닷지' })).toBeVisible();
+
+  const canvas = page.locator('#game');
+
+  await page.getByTestId('start-game').click();
+  await expect(canvas).toBeVisible();
+
+  const response = await sampleImmediateDirectionResponse(canvas);
+
+  const centerDelta = Math.abs(response.after.center - response.before.center);
+  const rightDelta = Math.abs(response.after.right - response.before.right);
+
+  expect(centerDelta + rightDelta).toBeGreaterThan(2_000);
   await expect(page.getByText('GAME OVER')).toHaveCount(0);
 });
 
