@@ -6,11 +6,12 @@ import type { Bullet } from '../../src/game/types';
 
 describe('bullets', () => {
   it('spawns bullets from outside an edge toward the player', () => {
+    const playerPosition = { x: 480, y: 320 };
     const bullet = spawnBullet({
       id: 1,
       rng: createRng(1),
       bounds: { width: 960, height: 640 },
-      playerPosition: { x: 480, y: 320 },
+      playerPosition,
       elapsedMs: 0,
       kind: 'basic',
       speed: 120,
@@ -27,6 +28,16 @@ describe('bullets', () => {
       120,
       3,
     );
+
+    const vectorToPlayer = {
+      x: playerPosition.x - bullet.position.x,
+      y: playerPosition.y - bullet.position.y,
+    };
+    const dotProduct =
+      vectorToPlayer.x * bullet.velocity.x +
+      vectorToPlayer.y * bullet.velocity.y;
+
+    expect(dotProduct).toBeGreaterThan(0);
   });
 
   it('moves active bullets and removes old off-screen bullets', () => {
@@ -39,10 +50,20 @@ describe('bullets', () => {
       kind: 'basic',
       speed: 120,
     });
+    const originalPosition = bullet.position;
 
     const updated = updateBullets([bullet], 100, { width: 960, height: 640 }, 2);
+    const movedBullet = updated.bullets[0];
 
-    expect(updated.bullets[0]?.ageMs).toBe(100);
+    expect(movedBullet?.ageMs).toBe(100);
+    expect(
+      movedBullet === undefined
+        ? 0
+        : Math.hypot(
+            movedBullet.position.x - originalPosition.x,
+            movedBullet.position.y - originalPosition.y,
+          ),
+    ).toBeGreaterThan(0);
     expect(updated.nextId).toBe(2);
   });
 
@@ -59,8 +80,18 @@ describe('bullets', () => {
 
     const updated = updateBullets([bullet], 900, { width: 960, height: 640 }, 2);
 
-    expect(updated.bullets.length).toBeGreaterThan(1);
-    expect(updated.nextId).toBeGreaterThan(2);
+    expect(updated.bullets).toHaveLength(3);
+    expect(updated.nextId).toBe(4);
+
+    const updatedAgain = updateBullets(
+      updated.bullets,
+      900,
+      { width: 960, height: 640 },
+      updated.nextId,
+    );
+
+    expect(updatedAgain.bullets).toHaveLength(3);
+    expect(updatedAgain.nextId).toBe(4);
   });
 });
 
