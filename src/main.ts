@@ -1,16 +1,12 @@
 import './styles.css';
+import { mountApp } from './ui/app';
 
-const overlay = document.querySelector<HTMLDivElement>('#overlay');
+const root = document.querySelector<HTMLElement>('#app');
+const canvas = document.querySelector<HTMLCanvasElement>('#game');
+const overlay = document.querySelector<HTMLElement>('#overlay');
 
-if (!overlay) {
-  throw new Error('Missing #overlay element');
+if (!root || !canvas || !overlay) {
+  throw new Error('Missing Dodge app mount elements');
 }
 
-overlay.innerHTML = `
-  <div class="panel">
-    <p class="eyebrow">DODGE</p>
-    <h1>닷지</h1>
-    <p>방향키로 우주선을 조종해서 사방에서 몰려오는 총알을 피하세요.</p>
-    <button type="button" class="primary">Start</button>
-  </div>
-`;
+mountApp({ root, canvas, overlay });
