@@ -9,6 +9,9 @@ describe('score validation', () => {
   it('normalizes nickname whitespace and length', () => {
     expect(normalizeNickname('  pilot  ')).toBe('pilot');
     expect(normalizeNickname('abcdefghijklmnopq')).toBe('abcdefghijklmnop');
+    expect(normalizeNickname('😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀')).toBe(
+      '😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀',
+    );
   });
 
   it('accepts valid submissions', () => {
@@ -21,7 +24,9 @@ describe('score validation', () => {
 
   it('rejects invalid submissions', () => {
     expect(validateScoreSubmission({ nickname: '', survivalMs: 10 }).ok).toBe(false);
+    expect(validateScoreSubmission({ nickname: {}, survivalMs: 10 }).ok).toBe(false);
     expect(validateScoreSubmission({ nickname: 'pilot', survivalMs: 0 }).ok).toBe(false);
+    expect(validateScoreSubmission({ nickname: 'pilot', survivalMs: '1000' }).ok).toBe(false);
     expect(
       validateScoreSubmission({
         nickname: 'pilot',

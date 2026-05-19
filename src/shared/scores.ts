@@ -16,13 +16,21 @@ export type ScoreValidationResult =
   | { ok: true; nickname: string; survivalMs: number }
   | { ok: false; message: string };
 
-export function normalizeNickname(value: unknown): string {
-  return String(value ?? '').trim().slice(0, MAX_NICKNAME_LENGTH);
+export function normalizeNickname(value: string): string {
+  return Array.from(value.trim()).slice(0, MAX_NICKNAME_LENGTH).join('');
 }
 
 export function validateScoreSubmission(input: ScoreSubmission): ScoreValidationResult {
+  if (typeof input.nickname !== 'string') {
+    return { ok: false, message: '닉네임을 입력해주세요.' };
+  }
+
+  if (typeof input.survivalMs !== 'number') {
+    return { ok: false, message: '점수가 올바르지 않습니다.' };
+  }
+
   const nickname = normalizeNickname(input.nickname);
-  const survivalMs = Number(input.survivalMs);
+  const { survivalMs } = input;
 
   if (!nickname) return { ok: false, message: '닉네임을 입력해주세요.' };
   if (!Number.isInteger(survivalMs) || survivalMs <= 0) return { ok: false, message: '점수가 올바르지 않습니다.' };
